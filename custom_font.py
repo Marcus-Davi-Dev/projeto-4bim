@@ -1,6 +1,6 @@
 import pygame
 import json
-# import sys
+import constants.colors as colors
 
 class CustomFont:
     cached_surfaces: dict[str, pygame.Surface] = {}
@@ -11,7 +11,7 @@ class CustomFont:
         if len(self.cached_surfaces.keys()) == 0:
             raise NotImplementedError(f"The font hasn't been initiated yet. Please use custom_font.init() or {type(self)}.update_bitmap()")
         offset = 0
-        surface = pygame.Surface((len(text)*size + (len(text)-1)*2*size,self.ratio*size))
+        surface = pygame.Surface((len(text)*self.ratio*size,size))
         surface.fill((255, 255, 255))
         
         for char in text:
@@ -20,7 +20,17 @@ class CustomFont:
                 char_surface = self.cached_surfaces["NO_CHAR"]
             else:
                 char_surface = self.cached_surfaces[char]
-            scaled_surface = pygame.transform.scale(char_surface, (self.ratio*size, size))
+
+            mask = pygame.mask.from_surface(char_surface)
+            # mask is the same size of the char_surface, which is the same size as the resolution
+            mask_size = mask.get_size()
+            for x in range(mask_size[0]):
+                for y in range(mask_size[1]):
+                    if mask.get_at((x, y)) == 1:
+                        print(mask.get_at((x, y)), end="")
+                        char_surface.set_at((x, y), color)
+
+            scaled_surface = pygame.transform.smoothscale(char_surface, (self.ratio*size, size))
             surface.blit(scaled_surface, (offset, 0))
             offset += (self.ratio * size)
         # sys.exit()
@@ -35,7 +45,9 @@ class CustomFont:
         self.font_res = (x_size, y_size)
         self.ratio = y_size/x_size
         for char in bitmap.keys():
-            surface = pygame.Surface((x_size, y_size), pygame.SRCALPHA)
+            surface = pygame.Surface((x_size, y_size))
+            surface.fill(colors.WHITE)
+            surface.set_colorkey(colors.WHITE)
             for x in range(x_size):
                 for y in range(y_size):
                     if bitmap[char][y][x] == "1":
