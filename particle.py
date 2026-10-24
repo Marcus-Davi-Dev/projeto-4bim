@@ -28,3 +28,11 @@ class Particle:
     def potential_energy(self, Q: Particle):
         distance = math.sqrt((Q.x - self.x)**2 + (Q.y - self.y)**2)
         return Particle.vacuum_constant * (10**Q.chargeExponent*Q.chargeMantissa * 10**self.chargeExponent*self.chargeMantissa)/distance
+
+    def eletrostatic_force(self, Q: Particle):
+        distance = math.sqrt((Q.x - self.x)**2 + (Q.y - self.y)**2)
+        return Particle.vacuum_constant * (10**Q.chargeExponent*Q.chargeMantissa * 10**self.chargeExponent*self.chargeMantissa)/(distance**2)
+    
+    def eletric_field(self, Q: Particle):
+        distance = math.sqrt((Q.x - self.x)**2 + (Q.y - self.y)**2)
+        return Particle.vacuum_constant * (10**Q.chargeExponent*Q.chargeMantissa * 10**self.chargeExponent*self.chargeMantissa)/(distance**2)
