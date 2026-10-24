@@ -33,11 +33,11 @@ def onclick(ev: pygame.event.Event):
 
 def draw_grid(surface: pygame.Surface, squares_size: int, color):
     """Draws the grid in which the particles will be. It does NOT render it, you have to use pygame.display.flip() or .update() manually."""
-    for i in range(int(surface.width/squares_size)): # colunas
-        pygame.draw.line(surface, color, (i*squares_size, 0), (i*squares_size, surface.height))
+    for i in range(int(surface.get_width()/squares_size)): # colunas
+        pygame.draw.line(surface, color, (i*squares_size, 0), (i*squares_size, surface.get_height()))
 
-    for i in range(int(surface.width/squares_size)): # linhas
-        pygame.draw.line(surface, color, (0, i*squares_size), (surface.width, i*squares_size))
+    for i in range(int(surface.get_width()/squares_size)): # linhas
+        pygame.draw.line(surface, color, (0, i*squares_size), (surface.get_width(), i*squares_size))
 
 font = custom_font.CustomFont()
 custom_font.init()
