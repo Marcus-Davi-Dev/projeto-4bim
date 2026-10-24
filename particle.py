@@ -9,7 +9,7 @@ class Particle:
         self.chargeMantissa = charge
         self.chargeExponent = exp
     def __repr__(self):
-        return f"(x={self.x}, y={self.y}, chargeMantissa={self.chargeMantissa}, exp:={self.chargeExponent})"
+        return f"(x={self.x}, y={self.y}, chargeMantissa={self.chargeMantissa}, exp={self.chargeExponent})"
 
     def render(self, surface: pygame.Surface):
 
