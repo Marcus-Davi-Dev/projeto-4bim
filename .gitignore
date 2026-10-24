@@ -1,0 +1,5 @@
+# the virtual environment is not necessary for the project
+.virtualenvs/
+
+# we wont be putting caches on github...
+*/__pycache__/*
