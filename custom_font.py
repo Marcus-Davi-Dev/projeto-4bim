@@ -12,7 +12,8 @@ class CustomFont:
             raise NotImplementedError(f"The font hasn't been initiated yet. Please use custom_font.init() or {type(self)}.update_bitmap()")
         offset = 0
         surface = pygame.Surface((len(text)*self.ratio*size,size))
-        surface.fill((255, 255, 255))
+        surface.fill(colors.WHITE)
+        surface.set_colorkey(colors.WHITE)
         
         for char in text:
             char_surface: pygame.Surface | None = None
@@ -27,10 +28,9 @@ class CustomFont:
             for x in range(mask_size[0]):
                 for y in range(mask_size[1]):
                     if mask.get_at((x, y)) == 1:
-                        print(mask.get_at((x, y)), end="")
                         char_surface.set_at((x, y), color)
 
-            scaled_surface = pygame.transform.smoothscale(char_surface, (self.ratio*size, size))
+            scaled_surface = pygame.transform.scale(char_surface, (self.ratio*size, size))
             surface.blit(scaled_surface, (offset, 0))
             offset += (self.ratio * size)
         # sys.exit()
