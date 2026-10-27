@@ -3,13 +3,17 @@ import math
 
 class Particle:
     vacuum_constant = 9*10**9 # 9.10e9
+    @classmethod
+    def calculate_radius(cls, exp):
+        return abs(exp)*4
     def __init__(self, x: float, y: float, charge: float, exp: int):
         self.x = x
         self.y = y
         self.chargeMantissa = charge
         self.chargeExponent = exp
+        self.radius = abs(exp)*4
     def __repr__(self):
-        return f"(x={self.x}, y={self.y}, chargeMantissa={self.chargeMantissa}, exp={self.chargeExponent})"
+        return f"(x={self.x}, y={self.y}, chargeMantissa={self.chargeMantissa}, exp={self.chargeExponent}, radius={self.radius})"
 
     def render(self, surface: pygame.Surface):
 
@@ -19,7 +23,7 @@ class Particle:
             color = (80, 80, 80)
         else:
             color = (255, 0, 0)
-        pygame.draw.circle(surface, color, (self.x, self.y), abs(self.chargeExponent)*4)
+        pygame.draw.circle(surface, color, (self.x, self.y), self.radius)
     
     def potential(self, Q: Particle):
         distance = math.sqrt((Q.x - self.x)**2 + (Q.y - self.y)**2)
