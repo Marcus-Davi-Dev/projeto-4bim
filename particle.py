@@ -15,15 +15,14 @@ class Particle:
     def __repr__(self):
         return f"(x={self.x}, y={self.y}, chargeMantissa={self.chargeMantissa}, exp={self.chargeExponent}, radius={self.radius})"
 
-    def render(self, surface: pygame.Surface):
-
+    def render(self, surface: pygame.Surface, offset: tuple[int, int] | tuple[float, float] | list[int] | list[float]):
         if self.chargeMantissa > 0:
             color = (0, 0, 255)
         elif self.chargeMantissa == 0:
             color = (80, 80, 80)
         else:
             color = (255, 0, 0)
-        pygame.draw.circle(surface, color, (self.x, self.y), self.radius)
+        pygame.draw.circle(surface, color, (self.x - offset[0], self.y - offset[1]), self.radius)
     
     def potential(self, Q: Particle):
         distance = math.sqrt((Q.x - self.x)**2 + (Q.y - self.y)**2)
