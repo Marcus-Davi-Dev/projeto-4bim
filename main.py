@@ -7,13 +7,17 @@ import json
 import constants.colors as colors
 from utils import *
 
+pygame.display.init()
+
 # screen
-screen_width = 800
-screen_height = 600
+screen_width = pygame.display.get_desktop_sizes()[0][0]
+screen_height = pygame.display.get_desktop_sizes()[0][1] - 74
 screen = pygame.display.set_mode((screen_width, screen_height))
 
 GRID_SIZE = 50
 world_offset = [0.0, 0.0]
+
+base_movement_speed = 2.5
 
 # the list of particles
 particles: list[Particle] = []
@@ -67,10 +71,10 @@ while running:
                     map = file.read()
                     font.update_bitmap(json.loads(map))
     
-    offset_increase = 1 * delta / 7
+    offset_increase = base_movement_speed * delta / 7
     
     if pressed_keys[pygame.K_LSHIFT] or pressed_keys[pygame.K_RSHIFT]:
-        offset_increase *= 2.5
+        offset_increase *= 2
             
     if pressed_keys[pygame.K_LEFT] or pressed_keys[pygame.K_a]:
         world_offset[0] -= offset_increase
@@ -138,6 +142,22 @@ while running:
         
         field = font.render(f"Eletric field: 0", 14, colors.RED)
         screen.blit(field, (5, 48))
+    
+    helper_size = 18
+    help_text = font.render("Use as setas direcionais ou WASD para mover a câmera.", helper_size, colors.BLACK)
+    screen.blit(help_text, (5, screen_height-helper_size))
+    
+    world_pos_size = 21
+    x_text = font.render(f"X: {(lambda a, n: a[0] + "." + a[1].ljust(n, "0")[:n])(str(world_offset[0]).split("."), 4)}", world_pos_size, colors.GREEN)
+    y_text = font.render(f"Y: {(lambda a, n: a[0] + "." + a[1].ljust(n, "0")[:n])(str(world_offset[1]).split("."), 4)}", world_pos_size, colors.GREEN)
+    screen.blits([
+        (x_text, (screen_width - x_text.get_width(), screen_height - world_pos_size*2)),
+        (y_text, (screen_width - y_text.get_width(), screen_height - world_pos_size))
+    ])
+    
+    if pressed_keys[pygame.K_LSHIFT] or pressed_keys[pygame.K_RSHIFT]:
+        shift_is_pressed_text = font.render("SHIFT PRESSIONADO", helper_size, colors.BLUE)
+        screen.blit(shift_is_pressed_text, (screen_width - shift_is_pressed_text.get_width(), screen_height - world_pos_size*3))
     
     for p in particles:
         # if real_pos[0]+p.radius >= 0 and real_pos[0]-p.radius <= screen_width and real_pos[1]+p.radius >= 0 and real_pos[1]-p.radius <= screen_height:
