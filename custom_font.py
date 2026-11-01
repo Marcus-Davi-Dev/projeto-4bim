@@ -30,7 +30,7 @@ class CustomFont:
                     if mask.get_at((x, y)) == 1:
                         char_surface.set_at((x, y), color)
 
-            scaled_surface = pygame.transform.scale(char_surface, (self.ratio*size, size))
+            scaled_surface = pygame.transform.smoothscale(char_surface, (self.ratio*size, size))
             surface.blit(scaled_surface, (offset, 0))
             offset += (self.ratio * size)
         # sys.exit()
@@ -53,7 +53,9 @@ class CustomFont:
                     if bitmap[char][y][x] == "1":
                         surface.set_at((x, y), (0, 0, 0))
             CustomFont.cached_surfaces[char] = surface
-        
+    
+    def calculate_width(self, text: str, size: int):
+        return len(text)*size*self.ratio
         
 def init():
     bitmap: dict[str, list[str]]
