@@ -1,7 +1,6 @@
 import math
 import pygame
 import constants.colors as colors
-import custom_font
 
 pygame.init()
 
