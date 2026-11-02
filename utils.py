@@ -1,6 +1,5 @@
 import math
 import pygame
-import constants.colors as colors
 
 pygame.init()
 
@@ -23,9 +22,9 @@ def draw_grid(surface: pygame.Surface, squares_size: int, color: tuple[int, int,
         
 def draw_ele_force_formula(surface: pygame.surface.Surface, pos: tuple[float, float], font: pygame.font.Font):
     size = font.get_height()
-    Fe = font.render("Fe = k.", False, colors.BLACK)
-    Q1Q2 = font.render("|Q1|.|Q2|", False, colors.BLACK)
-    d2 = font.render("d²", False, colors.BLACK)
+    Fe = font.render("Fe = k.", False, pygame.colordict.THECOLORS["black"])
+    Q1Q2 = font.render("|Q1|.|Q2|", False, pygame.colordict.THECOLORS["black"])
+    d2 = font.render("d²", False, pygame.colordict.THECOLORS["black"])
 #2 texts in top of each other
 #                           Two paddings of 0.05 for the line
 #                                      line of size/8 size
@@ -37,4 +36,4 @@ def draw_ele_force_formula(surface: pygame.surface.Surface, pos: tuple[float, fl
     surface.blit(Q1Q2, (pos[0] + x_offset, pos[1]))
     surface.blit(d2, (pos[0] + x_offset + division_size/2 - font.size("d2")[0]/2, pos[1] + total_y_size - size))
     
-    pygame.draw.line(surface, colors.BLACK, (pos[0] + x_offset, pos[1] + total_y_size/2), (pos[0] + x_offset + division_size, pos[1] + total_y_size/2), int(size/12))
+    pygame.draw.line(surface, pygame.colordict.THECOLORS["black"], (pos[0] + x_offset, pos[1] + total_y_size/2), (pos[0] + x_offset + division_size, pos[1] + total_y_size/2), int(size/12))
