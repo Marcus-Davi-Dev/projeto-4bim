@@ -22,7 +22,12 @@ side_menu = {
     "particle": None
 }
 action_side_menu_state: str = "wander"
-side_menu_states = ["wander", "create particle"]
+side_menu_states = ["wander", "create particle", "inspect"]
+side_menu_translations = {
+    "wander": "perambular (vou trocar depois)",
+    "create particle": "criar partículas",
+    "inspect": "inspecionar"
+}
 side_menu_padding_x = 6
 side_menu_padding_y = 10
 side_menu_margin_x = 20
@@ -31,6 +36,13 @@ actions_gap = 10
 
 side_menu_height = len(side_menu_states) * action_badge_size + (len(side_menu_states)-1) * actions_gap + side_menu_padding_y*2
 
+try:
+    move_cursor_img = pygame.transform.smoothscale(pygame.image.load("./imgs/move.jpg").convert_alpha(), (action_badge_size, action_badge_size))
+except:
+    move_cursor_img = pygame.Surface((action_badge_size, action_badge_size), pygame.SRCALPHA)
+    pygame.draw.rect(move_cursor_img, (45, 47, 60), move_cursor_img.get_rect(), border_radius=8)
+side_menu_state_images = [move_cursor_img]
+
 state: str = "main_screen"
 
 general_font = "./fonts/Exo_2/Exo2-Regular.ttf"
@@ -38,28 +50,69 @@ title_font_file = "./fonts/Audiowide-Regular.ttf"
 # the list of particles
 particles: list[Particle] = []
 
-# move_cursor_img = pygame.image.load("./imgs/move.jpeg")
 
 # flags to track whether the user has clicked once or just kept the mouse firing inputs
 mousePressedButtons = [False, False, False]
 
+tooltip_font = pygame.font.Font(general_font, 14)
+
 def show_actions_side_menu():
-    side_menu_surf = pygame.surface.Surface((action_badge_size+side_menu_padding_x*2, side_menu_height), pygame.SRCALPHA)
-    side_menu_surf.fill((255, 0, 0, 255))
+    side_menu_surf = pygame.Surface((action_badge_size + side_menu_padding_x * 2, side_menu_height), pygame.SRCALPHA)
+    pygame.draw.rect(side_menu_surf, (30, 32, 45, 200), side_menu_surf.get_rect(), border_radius=12)
+    screen.blit(side_menu_surf, (side_menu_margin_x, screen_height / 2 - side_menu_height / 2))
     
-    
-    screen.blit(side_menu_surf, (side_menu_margin_x, screen_height/2 - side_menu_height/2))
     offset_y = 0
-    for i in range(len(side_menu_states)):
-        surf = pygame.Surface((action_badge_size, action_badge_size))
-        if side_menu_states[i] == action_side_menu_state:
-            surf.fill((0, 150, 150, 0))
-            screen.blit(surf, (side_menu_padding_x + side_menu_margin_x, screen_height/2 - side_menu_height/2 + side_menu_padding_y + offset_y))
-        else:
-            surf.fill((0, 0, 0, 0))
-            screen.blit(surf, (side_menu_padding_x + side_menu_margin_x, screen_height/2 - side_menu_height/2 + side_menu_padding_y + offset_y))
+    center = action_badge_size // 2
+    color = (220, 220, 225)
+    mouse_pos = pygame.mouse.get_pos()
+    
+    hovered_tooltip = None 
+    
+    for i, state in enumerate(side_menu_states):
+        base_surf = side_menu_state_images[i].copy() if i < len(side_menu_state_images) else pygame.Surface((action_badge_size, action_badge_size), pygame.SRCALPHA)
+        
+        if i >= len(side_menu_state_images):
+            pygame.draw.rect(base_surf, (45, 47, 60), base_surf.get_rect(), border_radius=8)
             
+            if state == "create particle":
+                pygame.draw.line(base_surf, color, (center, 15), (center, action_badge_size-15), 4)
+                pygame.draw.line(base_surf, color, (15, center), (action_badge_size-15, center), 4)
+            elif state == "inspect":
+                pygame.draw.circle(base_surf, color, (center - 4, center - 4), 10, 3)
+                pygame.draw.line(base_surf, color, (center + 3, center + 3), (center + 12, center + 12), 4)
+        
+        x_pos = side_menu_padding_x + side_menu_margin_x
+        y_pos = screen_height / 2 - side_menu_height / 2 + side_menu_padding_y + offset_y
+        
+        button_rect = pygame.Rect(x_pos, y_pos, action_badge_size, action_badge_size)
+        if button_rect.collidepoint(mouse_pos):
+            hovered_tooltip = (state, y_pos)
+        
+        if state == action_side_menu_state:
+            pygame.draw.rect(screen, globals["color"], (x_pos - 2, y_pos - 2, action_badge_size + 4, action_badge_size + 4), 3, border_radius=10)
+            base_surf.set_alpha(255)
+        else:
+            base_surf.set_alpha(100) 
+            
+        screen.blit(base_surf, (x_pos, y_pos))
         offset_y += action_badge_size + actions_gap
+
+    # tooltip
+    if hovered_tooltip:
+        state, btn_y = hovered_tooltip
+        translation = side_menu_translations.get(state, state)
+        
+        text_surf = tooltip_font.render(translation, True, (240, 240, 245))
+        
+        # se Deus quiser eu acertei nos cálculos
+        tt_x = side_menu_margin_x + side_menu_padding_x * 2 + action_badge_size + 15
+        tt_y = btn_y + (action_badge_size / 2) - (text_surf.get_height() / 2)
+        
+        bg_rect = pygame.Rect(tt_x - 8, tt_y - 6, text_surf.get_width() + 16, text_surf.get_height() + 12)
+        pygame.draw.rect(screen, (20, 22, 34), bg_rect, border_radius=6)
+        pygame.draw.rect(screen, globals["color"], bg_rect, width=1, border_radius=6) # Bordinha com a cor de destaque
+        
+        screen.blit(text_surf, (tt_x, tt_y))
 
 def show_particle_side_menu():
     global side_menu
@@ -77,7 +130,7 @@ def show_particle_side_menu():
     screen.blit(particle_surf, (menu_offset + 4, 4))
 
 def onclick(ev: pygame.event.Event):
-    global state, action_side_menu_state
+    global state, action_side_menu_state, side_menu
     if state == "main_screen":
         if distance(ev.pos, (screen_width/2, screen_height/2)) < globals["size"]:
             state = "sandbox"
