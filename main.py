@@ -45,6 +45,7 @@ except:
 side_menu_state_images = [move_cursor_img]
 
 state: str = "main_screen"
+selected_lesson: int | None = None
 
 general_font = "./fonts/Exo_2/Exo2-Regular.ttf"
 title_font_file = "./fonts/Audiowide-Regular.ttf"
@@ -56,6 +57,54 @@ particles: list[Particle] = []
 mousePressedButtons = [False, False, False]
 
 tooltip_font = pygame.font.Font(general_font, 14)
+
+lessons = [
+    {
+        "title": "Carga elétrica",
+        "summary": "Sinais, unidade e conservação da carga.",
+        "paragraphs": [
+            "A carga elétrica é uma propriedade da matéria. Existem cargas positivas e negativas; cargas de mesmo sinal se repelem e cargas de sinais opostos se atraem.",
+            "No Sistema Internacional, a carga é medida em coulombs (C). A carga elementar tem módulo e = 1,602 x 10^-19 C. Prótons têm carga +e e elétrons, -e.",
+            "Em um sistema isolado, a carga elétrica total se conserva: ela pode ser transferida entre corpos, mas não é criada nem destruída em processos comuns.",
+        ],
+    },
+    {
+        "title": "Força eletrostática",
+        "summary": "Lei de Coulomb, direção e sentido da força.",
+        "paragraphs": [
+            "Duas cargas puntiformes q1 e q2, separadas por uma distância r no vácuo, exercem forças de mesma intensidade uma sobre a outra.",
+            "F = k |q1 q2| / r², onde k ≈ 8,99 x 10^9 N·m²/C² no vácuo. A força atua ao longo da reta que liga as cargas.",
+            "Cargas de mesmo sinal se repelem; cargas de sinais opostos se atraem. A força diminui com o quadrado da distância: ao dobrar r, sua intensidade cai para um quarto.",
+        ],
+    },
+    {
+        "title": "Campo elétrico",
+        "summary": "Campo como força por unidade de carga de teste.",
+        "paragraphs": [
+            "O campo elétrico descreve a influência elétrica em cada ponto do espaço. Para uma carga de teste q, E = F/q; no SI, sua unidade é N/C (equivalente a V/m).",
+            "Para uma carga puntiforme Q, o módulo do campo é E = k |Q| / r². O campo aponta para fora de uma carga positiva e para uma carga negativa.",
+            "O campo resultante de várias cargas é a soma vetorial dos campos produzidos por cada uma. A carga de teste usada para definir o campo é considerada positiva.",
+        ],
+    },
+    {
+        "title": "Potencial e energia elétrica",
+        "summary": "Energia potencial e diferença de potencial.",
+        "paragraphs": [
+            "O potencial elétrico V é a energia potencial elétrica por unidade de carga: V = U/q. Sua unidade é o volt (V), equivalente a joule por coulomb.",
+            "Para uma carga puntiforme Q, tomando o potencial como zero no infinito, V = k Q/r. O potencial é uma grandeza escalar; contribuições de várias cargas são somadas algebricamente.",
+            "A energia potencial de duas cargas puntiformes é U = k q1 q2/r. Ela é positiva para cargas de mesmo sinal e negativa para cargas de sinais opostos.",
+        ],
+    },
+    {
+        "title": "Trabalho para mover uma carga",
+        "summary": "Movimento entre A e B e conservação de energia.",
+        "paragraphs": [
+            "Ao mover uma carga q de A para B, a variação da energia potencial elétrica é ΔU = q (VB - VA) = q ΔV.",
+            "O trabalho realizado pelo campo elétrico é Wcampo = -ΔU = q (VA - VB). Se o campo realiza trabalho positivo, a energia potencial diminui.",
+            "Se a carga é deslocada lentamente sem variar sua energia cinética, o trabalho de um agente externo é Wexterno = ΔU. Em eletrostática, esse trabalho depende dos pontos inicial e final, não do caminho.",
+        ],
+    },
+]
 
 def particle_side_menu_layout():
     panel_width = min(340, screen_width)
@@ -297,10 +346,30 @@ def show_particle_side_menu():
     screen.blit(field_hint, (global_rect.x + 42, global_rect.y + 75))
 
 def onclick(ev: pygame.event.Event):
-    global state, action_side_menu_state, side_menu
+    global state, action_side_menu_state, side_menu, selected_lesson
     if state == "main_screen":
-        if distance(ev.pos, (screen_width/2, screen_height/2)) < globals["size"]:
+        start_rect, lessons_rect = main_menu_layout()
+        if start_rect.collidepoint(ev.pos):
             state = "sandbox"
+        elif lessons_rect.collidepoint(ev.pos):
+            selected_lesson = None
+            state = "lessons"
+        return
+
+    if state == "lessons":
+        back_rect = lessons_back_layout()
+        if back_rect.collidepoint(ev.pos):
+            if selected_lesson is None:
+                state = "main_screen"
+            else:
+                selected_lesson = None
+            return
+
+        if selected_lesson is None:
+            for index in range(len(lessons)):
+                if lesson_card_layout(index).collidepoint(ev.pos):
+                    selected_lesson = index
+                    return
         return
     
     if state != "sandbox":
@@ -364,30 +433,155 @@ globals = {
     "color": (0, 153, 255)
 }
 
+def main_menu_layout():
+    button_width = min(300, screen_width - 40)
+    button_height = 56
+    center_x = screen_width // 2
+    return (
+        pygame.Rect(center_x - button_width // 2, int(screen_height * 0.53), button_width, button_height),
+        pygame.Rect(center_x - button_width // 2, int(screen_height * 0.53) + 74, button_width, button_height),
+    )
+
+def lessons_back_layout():
+    button_width = min(240, screen_width - 40)
+    return pygame.Rect(
+        screen_width // 2 - button_width // 2,
+        screen_height - 68,
+        button_width,
+        48,
+    )
+
+def lesson_card_layout(index: int):
+    card_top = 142 if screen_height >= 650 else 105
+    gap = 10
+    available_height = screen_height - card_top - 138
+    card_height = max(52, min(82, (available_height - gap * (len(lessons) - 1)) // len(lessons)))
+    card_width = min(820, screen_width - 40)
+    return pygame.Rect(
+        screen_width // 2 - card_width // 2,
+        card_top + index * (card_height + gap),
+        card_width,
+        card_height,
+    )
+
+def draw_button(surface: pygame.Surface, rect: pygame.Rect, label: str, font_size=22):
+    hovered = rect.collidepoint(pygame.mouse.get_pos())
+    fill_color = (37, 43, 62) if hovered else (28, 32, 47)
+    border_color = (75, 181, 235) if hovered else globals["color"]
+    pygame.draw.rect(surface, fill_color, rect, border_radius=12)
+    pygame.draw.rect(surface, border_color, rect, width=2, border_radius=12)
+    font = pygame.font.Font(general_font, font_size)
+    text = font.render(label, True, (240, 242, 248))
+    surface.blit(text, text.get_rect(center=rect.center))
+
+def draw_wrapped_text(
+    surface: pygame.Surface,
+    text: str,
+    font: pygame.font.Font,
+    color: tuple[int, int, int],
+    rect: pygame.Rect,
+    line_gap=7,
+):
+    y = rect.y
+    for paragraph in text.splitlines():
+        if not paragraph:
+            y += font.get_linesize()
+            continue
+        line = ""
+        for word in paragraph.split():
+            candidate = f"{line} {word}".strip()
+            if line and font.size(candidate)[0] > rect.width:
+                surface.blit(font.render(line, True, color), (rect.x, y))
+                y += font.get_linesize() + line_gap
+                line = word
+            else:
+                line = candidate
+        if line:
+            surface.blit(font.render(line, True, color), (rect.x, y))
+            y += font.get_linesize() + line_gap
+    return y
+
 def main_screen(delta: float):
     global state, screen
     screen.fill((20, 22, 34))
-    draw_grid(screen, 30, (35, 37, 50))
+    draw_grid(screen, 30, (31, 34, 48))
     
-    title_size = 60
+    title_size = min(60, max(32, screen_width // 16))
     title_font = pygame.font.Font(title_font_file, title_size)
-    title_text = "Physics SandBox"
+    title_text = "Physics Sandbox"
     title = title_font.render(title_text, False, pygame.colordict.THECOLORS["aliceblue"])
-    screen.blit(title, (screen_width/2 - title_font.size(title_text)[0]/2, title_size))
-        
+    screen.blit(title, title.get_rect(center=(screen_width // 2, int(screen_height * 0.28))))
+    subtitle_font = pygame.font.Font(general_font, 18)
+    subtitle = subtitle_font.render("Explore as cargas e o campo elétrico", True, (165, 174, 193))
+    screen.blit(subtitle, subtitle.get_rect(center=(screen_width // 2, int(screen_height * 0.38))))
+    start_rect, lessons_rect = main_menu_layout()
+    draw_button(screen, start_rect, "Abrir sandbox")
+    draw_button(screen, lessons_rect, "Aulas de eletrostática")
 
-    play_text_size = 32
-    play_text_font = pygame.font.Font(general_font, play_text_size)
-    play_text = "START"
-    play_render = play_text_font.render(play_text, False, pygame.colordict.THECOLORS["white"])
-    start_rect = pygame.draw.rect(screen, globals['color'], (screen_width/2-play_text_font.size(play_text)[0]/2-6, screen_height/2-play_text_size/2, play_text_font.size(play_text)[0]+12, play_text_size+10), 3, 12)
-    screen.blit(play_render, (screen_width/2 - play_text_font.size(play_text)[0]/2, screen_height/2 - play_text_size/2))
-    
-    if mousePressedButtons.count(True) > 0:
-        pos = pygame.mouse.get_pos()
-        if start_rect.collidepoint(pos):
-            state = "sandbox"
-            return
+def lessons_screen():
+    screen.fill((20, 22, 34))
+    draw_grid(screen, 30, (31, 34, 48))
+    title_font = pygame.font.Font(general_font, min(34, max(24, screen_width // 30)))
+    subtitle_font = pygame.font.Font(general_font, 16)
+    body_font = pygame.font.Font(general_font, 17)
+    muted = (165, 174, 193)
+    light = (232, 235, 243)
+
+    if selected_lesson is None:
+        title = title_font.render("Aulas de eletrostática", True, light)
+        screen.blit(title, title.get_rect(center=(screen_width // 2, 66)))
+        subtitle = subtitle_font.render("Escolha um tema para começar", True, muted)
+        screen.blit(subtitle, subtitle.get_rect(center=(screen_width // 2, 105)))
+        for index, lesson in enumerate(lessons):
+            card = lesson_card_layout(index)
+            hovered = card.collidepoint(pygame.mouse.get_pos())
+            pygame.draw.rect(
+                screen,
+                (36, 42, 59) if hovered else (27, 31, 45),
+                card,
+                border_radius=10,
+            )
+            pygame.draw.rect(
+                screen,
+                (75, 181, 235) if hovered else (55, 62, 80),
+                card,
+                width=1,
+                border_radius=10,
+            )
+            number_font = pygame.font.Font(general_font, 16)
+            number = number_font.render(f"{index + 1:02}", True, (90, 190, 235))
+            screen.blit(number, (card.x + 16, card.y + 13))
+            card_title = subtitle_font.render(lesson["title"], True, light)
+            screen.blit(card_title, (card.x + 58, card.y + 10))
+            summary = pygame.font.Font(general_font, 14).render(lesson["summary"], True, muted)
+            screen.blit(summary, (card.x + 58, card.y + 38))
+    else:
+        lesson = lessons[selected_lesson]
+        title = title_font.render(lesson["title"], True, light)
+        screen.blit(title, title.get_rect(center=(screen_width // 2, 67)))
+        card_width = min(860, screen_width - 40)
+        content = pygame.Rect(
+            screen_width // 2 - card_width // 2,
+            112,
+            card_width,
+            max(100, screen_height - 202),
+        )
+        pygame.draw.rect(screen, (27, 31, 45), content, border_radius=14)
+        pygame.draw.rect(screen, (55, 62, 80), content, width=1, border_radius=14)
+        text_rect = content.inflate(-40, -36)
+        y = text_rect.y
+        for paragraph in lesson["paragraphs"]:
+            y = draw_wrapped_text(
+                screen,
+                paragraph,
+                body_font,
+                light,
+                pygame.Rect(text_rect.x, y, text_rect.width, text_rect.bottom - y),
+                line_gap=5,
+            )
+            y += 14
+
+    draw_button(screen, lessons_back_layout(), "Voltar", font_size=18)
 
 def draw_particle_interactions(surface: pygame.Surface):
     for index, particle in enumerate(particles):
@@ -587,10 +781,18 @@ while running:
                 side_menu["shown"] = False
                 side_menu["particle"] = None
             if event.key == pygame.K_r:
+                selected_lesson = None
                 state = "main_screen"
+            if event.key == pygame.K_ESCAPE and state == "lessons":
+                if selected_lesson is None:
+                    state = "main_screen"
+                else:
+                    selected_lesson = None
     screen_width, screen_height = screen.get_size()
     if state == "main_screen":
         main_screen(delta)
+    elif state == "lessons":
+        lessons_screen()
     elif state == "sandbox":
         sandbox(delta)
         if side_menu["show_field"]:
