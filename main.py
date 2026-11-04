@@ -92,7 +92,7 @@ lessons = [
         "paragraphs": [
             "O potencial elétrico V é a energia potencial elétrica por unidade de carga: V = U/q. Sua unidade é o volt (V), equivalente a joule por coulomb.",
             "Para uma carga puntiforme Q, tomando o potencial como zero no infinito, V = k Q/r. O potencial é uma grandeza escalar; contribuições de várias cargas são somadas algebricamente.",
-            "A energia potencial de duas cargas puntiformes é U = k q1 q2/r. Ela é positiva para cargas de mesmo sinal e negativa para cargas de sinais opostos.",
+            "A energia potencial de duas cargas puntiformes é U = (k*q1*q2)/r. Ela é positiva para cargas de mesmo sinal e negativa para cargas de sinais opostos.",
         ],
     },
     {
@@ -173,8 +173,6 @@ def draw_electric_field_grid(surface, grid_spacing=40, k=8987551792):
             dir_y = ey_total / e_norm
 
             arrow_length = 16
-            
-            alpha = min(255, max(30, int(e_norm / 1e6)))
 
             start_pt = (screen_x, screen_y)
             end_pt = (screen_x + dir_x * arrow_length, screen_y + dir_y * arrow_length)
@@ -700,40 +698,6 @@ def sandbox(delta: float):
     draw_grid(screen, GRID_SIZE, pygame.colordict.THECOLORS["gray"], world_offset)
     draw_particle_interactions(screen)
     
-    info_font = pygame.font.Font(general_font, 14)
-    
-    if len(particles) == 2:
-        potential_energy = info_font.render(f"Ptl energy: {particles[0].potential_energy(particles[1])}", False, pygame.colordict.THECOLORS["red"])
-        screen.blit(potential_energy, (5, 5))
-        
-        potential = info_font.render(f"Ptl: {particles[0].potential(particles[1])}", False, pygame.colordict.THECOLORS["red"])
-        screen.blit(potential, (5, 19))
-        
-        force = info_font.render(f"Eletrostatic force: {particles[0].eletrostatic_force(particles[1])}", False, pygame.colordict.THECOLORS["red"])
-        screen.blit(force, (5, 34))
-        
-        field = info_font.render(f"Eletric field: {particles[0].eletric_field(particles[1])}", False, pygame.colordict.THECOLORS["red"])
-        screen.blit(field, (5, 48))
-        
-        # formula_font = pygame.font.Font(general_font, 32)
-        # draw_ele_force_formula(screen, (
-        #     max(particles[0].x, particles[1].x) - abs(particles[0].x - particles[1].x)/2,
-        #     max(particles[0].y, particles[1].y) - abs(particles[0].y - particles[1].y)/2
-        # ), formula_font)
-        
-    else:
-        potential_energy = info_font.render(f"Ptl energy: 0", False, pygame.colordict.THECOLORS["red"])
-        screen.blit(potential_energy, (5, 5))
-        
-        potential = info_font.render(f"Ptl: 0", False, pygame.colordict.THECOLORS["red"])
-        screen.blit(potential, (5, 19))
-        
-        force = info_font.render(f"Eletrostatic force: 0", False, pygame.colordict.THECOLORS["red"])
-        screen.blit(force, (5, 34))
-        
-        field = info_font.render(f"Eletric field: 0", False, pygame.colordict.THECOLORS["red"])
-        screen.blit(field, (5, 48))
-    
     helper_size = 18
     helper_font = pygame.font.Font(general_font, helper_size)
     help_text = helper_font.render("Use as setas direcionais ou WASD para mover a câmera.", False, pygame.colordict.THECOLORS["black"])
@@ -755,12 +719,16 @@ def sandbox(delta: float):
     if pressed_keys[pygame.K_LSHIFT] or pressed_keys[pygame.K_RSHIFT]:
         shift_is_pressed_text = helper_font.render("SHIFT PRESSIONADO", False, pygame.colordict.THECOLORS["blue"])
         screen.blit(shift_is_pressed_text, (screen_width - shift_is_pressed_text.get_width(), screen_height - world_pos_size*3))
-        
 
 running = True
 while running:
     screen.fill(pygame.colordict.THECOLORS["white"]) # reset the screen
     delta = clock.tick()
+    fps_text = f"FPS: {1000/max(delta, 1)}"
+    if delta > 1000:
+        fps_text = f"FPM: {60000/max(delta, 1)}"
+    fps_surf = tooltip_font.render(fps_text, False, (0, 0, 0))
+    
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -794,12 +762,14 @@ while running:
     elif state == "lessons":
         lessons_screen()
     elif state == "sandbox":
-        sandbox(delta)
         if side_menu["show_field"]:
-            draw_electric_field_grid(screen)
+            draw_electric_field_grid(screen, 9)
+        sandbox(delta)
         if side_menu["shown"]:
             show_particle_side_menu()
         show_actions_side_menu()
+
+    screen.blit(fps_surf, (2, 2))
         
         
     pygame.display.flip()
