@@ -19,7 +19,8 @@ world_offset = [0.0, 0.0]
 base_movement_speed = 2.5
 side_menu = {
     "shown": False,
-    "particle": None
+    "particle": None,
+    "show_field": False,
 }
 action_side_menu_state: str = "wander"
 side_menu_states = ["wander", "create particle", "inspect"]
@@ -55,6 +56,85 @@ particles: list[Particle] = []
 mousePressedButtons = [False, False, False]
 
 tooltip_font = pygame.font.Font(general_font, 14)
+
+def particle_side_menu_layout():
+    panel_width = min(340, screen_width)
+    panel_x = screen_width - panel_width
+    content_x = panel_x + 16
+    content_width = panel_width - 32
+    particle_section = pygame.Rect(content_x, 64, content_width, 278)
+    global_section = pygame.Rect(content_x, 358, content_width, 112)
+    return {
+        "panel": pygame.Rect(panel_x, 0, panel_width, screen_height),
+        "close": pygame.Rect(panel_x + panel_width - 42, 16, 24, 24),
+        "particle": particle_section,
+        "global": global_section,
+        "field_toggle": pygame.Rect(content_x + 12, global_section.y + 52, 20, 20),
+        "field_control": pygame.Rect(
+            content_x + 8,
+            global_section.y + 44,
+            content_width - 16,
+            42,
+        ),
+    }
+
+def draw_electric_field_grid(surface, grid_spacing=40, k=8987551792):
+    global particles, world_offset
+    """
+    Desenha o campo elétrico resultante como uma grade de setas na tela.
+    """
+    if len(particles) == 0:
+        return
+
+    screen_w, screen_h = surface.get_size()
+
+    for screen_x in range(grid_spacing // 2, screen_w, grid_spacing):
+        for screen_y in range(grid_spacing // 2, screen_h, grid_spacing):
+            
+            world_x = screen_x + world_offset[0]
+            world_y = screen_y + world_offset[1]
+
+            ex_total = 0.0
+            ey_total = 0.0
+            too_close = False
+
+            for p in particles:
+                dx = world_x - p.x
+                dy = world_y - p.y
+                r_sq = dx**2 + dy**2
+                r = math.sqrt(r_sq)
+
+                if r < p.radius:
+                    too_close = True
+                    break
+
+                e_magnitude = (k * p.chargeMantissa) / r_sq
+                
+                ex_total += e_magnitude * (dx / r)
+                ey_total += e_magnitude * (dy / r)
+
+            if too_close:
+                continue
+
+            e_norm = math.hypot(ex_total, ey_total)
+            if e_norm == 0:
+                continue
+
+            dir_x = ex_total / e_norm
+            dir_y = ey_total / e_norm
+
+            arrow_length = 16
+            
+            alpha = min(255, max(30, int(e_norm / 1e6)))
+
+            start_pt = (screen_x, screen_y)
+            end_pt = (screen_x + dir_x * arrow_length, screen_y + dir_y * arrow_length)
+
+            color = (0, 212, 255)
+
+            pygame.draw.line(surface, color, start_pt, end_pt, 2)
+            
+            pygame.draw.circle(surface, color, (int(end_pt[0]), int(end_pt[1])), 2) # cabeça da seta
 
 def show_actions_side_menu():
     side_menu_surf = pygame.Surface((action_badge_size + side_menu_padding_x * 2, side_menu_height), pygame.SRCALPHA)
@@ -115,22 +195,106 @@ def show_actions_side_menu():
         screen.blit(text_surf, (tt_x, tt_y))
 
 def show_particle_side_menu():
-    global side_menu
-    
-    if not side_menu["shown"]:
+    if not side_menu["shown"] or side_menu["particle"] is None:
         return
-    
-    menu_offset = screen_width/5*4
-    background = pygame.Surface((screen_width/5, screen_height), pygame.SRCALPHA)
-    background.fill((50, 50, 50, 0))
-    screen.blit(background, (screen_width/5*4, 0), special_flags=pygame.BLEND_RGBA_MULT)
-    
-    big_font = pygame.font.Font(general_font, 24)
-    particle_text = "Elétron" if side_menu['particle'].chargeMantissa < 0 else "Próton"
-    # charge_text = f"Carga da partícula: {side_menu['particle'].charge}"
-    
-    particle_surf = big_font.render(particle_text, False, pygame.colordict.THECOLORS["lightgray"])
-    screen.blit(particle_surf, (menu_offset + 4, 4))
+
+    layout = particle_side_menu_layout()
+    panel = layout["panel"]
+    particle = side_menu["particle"]
+    panel_surface = pygame.Surface(panel.size, pygame.SRCALPHA)
+    panel_surface.fill((20, 22, 34, 248))
+    screen.blit(panel_surface, panel.topleft)
+    pygame.draw.line(screen, (55, 60, 78), panel.topleft, (panel.left, screen_height), 1)
+
+    heading_font = pygame.font.Font(general_font, 18)
+    section_font = pygame.font.Font(general_font, 13)
+    value_font = pygame.font.Font(general_font, 14)
+    title = heading_font.render("INSPEÇÃO", True, (240, 240, 245))
+    screen.blit(title, (panel.x + 16, 17))
+    close_rect = layout["close"]
+    pygame.draw.rect(screen, (45, 48, 62), close_rect, border_radius=6)
+    close_text = value_font.render("x", True, (220, 220, 225))
+    screen.blit(close_text, close_text.get_rect(center=close_rect.center))
+
+    particle_rect = layout["particle"]
+    pygame.draw.rect(screen, (30, 33, 48), particle_rect, border_radius=10)
+    pygame.draw.rect(screen, (55, 60, 78), particle_rect, width=1, border_radius=10)
+    section_heading = section_font.render("PARTÍCULA", True, (130, 190, 230))
+    screen.blit(section_heading, (particle_rect.x + 12, particle_rect.y + 12))
+
+    if particle.chargeMantissa < 0:
+        particle_name = "Elétron"
+    elif particle.chargeMantissa > 0:
+        particle_name = "Próton"
+    else:
+        particle_name = "Partícula neutra"
+    particle_title = heading_font.render(particle_name, True, (240, 240, 245))
+    screen.blit(particle_title, (particle_rect.x + 12, particle_rect.y + 34))
+
+    details = [
+        ("Carga", f"{particle.chargeMantissa:g} x 10^{particle.chargeExponent} C"),
+        ("Posição", f"x: {particle.x:.1f}, y: {particle.y:.1f}"),
+        ("Raio", f"{particle.radius:g} px"),
+    ]
+    detail_y = particle_rect.y + 72
+    for label, value in details:
+        label_surface = value_font.render(label, True, (155, 160, 175))
+        value_surface = value_font.render(value, True, (225, 228, 235))
+        screen.blit(label_surface, (particle_rect.x + 12, detail_y))
+        screen.blit(value_surface, (particle_rect.x + 86, detail_y))
+        detail_y += 26
+
+    pygame.draw.line(
+        screen,
+        (55, 60, 78),
+        (particle_rect.x + 12, detail_y + 2),
+        (particle_rect.right - 12, detail_y + 2),
+        1,
+    )
+    nearest_particle = min(
+        (other for other in particles if other is not particle),
+        key=lambda other: distance((particle.x, particle.y), (other.x, other.y)),
+        default=None,
+    )
+    interaction_y = detail_y + 12
+    interaction_label = value_font.render("Interação mais próxima", True, (155, 160, 175))
+    screen.blit(interaction_label, (particle_rect.x + 12, interaction_y))
+    if nearest_particle is None:
+        interaction_text = "Nenhuma outra partícula"
+    else:
+        separation = distance(
+            (particle.x, particle.y),
+            (nearest_particle.x, nearest_particle.y),
+        )
+        if separation == 0:
+            interaction_type = "Partículas sobrepostas"
+        elif particle.chargeMantissa == 0 or nearest_particle.chargeMantissa == 0:
+            interaction_type = "Sem interação elétrica"
+        elif particle.chargeMantissa * nearest_particle.chargeMantissa < 0:
+            interaction_type = "Atração"
+        else:
+            interaction_type = "Repulsão"
+        interaction_text = f"{interaction_type} - d: {separation:.1f} px"
+        if separation > 0:
+            force_text = f"Força: {abs(particle.eletrostatic_force(nearest_particle)):.3g} N"
+            force_surface = value_font.render(force_text, True, (225, 228, 235))
+            screen.blit(force_surface, (particle_rect.x + 12, interaction_y + 42))
+    interaction_surface = value_font.render(interaction_text, True, (225, 228, 235))
+    screen.blit(interaction_surface, (particle_rect.x + 12, interaction_y + 20))
+
+    global_rect = layout["global"]
+    pygame.draw.rect(screen, (30, 33, 48), global_rect, border_radius=10)
+    pygame.draw.rect(screen, (55, 60, 78), global_rect, width=1, border_radius=10)
+    global_heading = section_font.render("GLOBAL", True, (130, 190, 230))
+    screen.blit(global_heading, (global_rect.x + 12, global_rect.y + 12))
+    field_label = value_font.render("Campo elétrico", True, (225, 228, 235))
+    screen.blit(field_label, (global_rect.x + 42, global_rect.y + 52))
+    field_rect = layout["field_toggle"]
+    pygame.draw.rect(screen, (100, 105, 120), field_rect, 2, border_radius=4)
+    if side_menu.get("show_field"):
+        pygame.draw.rect(screen, globals["color"], field_rect.inflate(-6, -6), border_radius=2)
+    field_hint = section_font.render("Mostrar o campo elétrico", True, (155, 160, 175))
+    screen.blit(field_hint, (global_rect.x + 42, global_rect.y + 75))
 
 def onclick(ev: pygame.event.Event):
     global state, action_side_menu_state, side_menu
@@ -148,27 +312,46 @@ def onclick(ev: pygame.event.Event):
         return
     # state = "sandbox"
     
+    if side_menu["shown"]:
+        layout = particle_side_menu_layout()
+        if layout["panel"].collidepoint(ev.pos):
+            if layout["close"].collidepoint(ev.pos):
+                side_menu["shown"] = False
+                side_menu["particle"] = None
+            elif layout["field_control"].collidepoint(ev.pos):
+                side_menu["show_field"] = not side_menu["show_field"]
+            return
+
     if action_side_menu_state == "wander":
         return
     
-    for particle in particles:
-        if distance(ev.pos, (particle.x, particle.y)) < particle.radius:
-            side_menu['shown'] = True
-            side_menu['particle'] = particle
-            show_particle_side_menu()
-            return
+    if action_side_menu_state == "inspect":
+        for particle in particles:
+            world_pos = (ev.pos[0] + world_offset[0], ev.pos[1] + world_offset[1])
+            if distance(world_pos, (particle.x, particle.y)) < particle.radius:
+                side_menu['shown'] = True
+                side_menu['particle'] = particle
+                show_particle_side_menu()
+                return
         
     if action_side_menu_state != "create particle":
         return
     
-    if len(particles) >= 2:
-        return
     
-    if len(particles) == 1 and distance(ev.pos, (particles[0].x, particles[0].y)) < particles[0].radius+Particle.calculate_radius(-6):
+    particle_position = (
+        ev.pos[0] + world_offset[0],
+        ev.pos[1] + world_offset[1],
+    )
+    new_particle_radius = Particle.calculate_radius(-6)
+    if any(
+        distance(particle_position, (particle.x, particle.y))
+        < particle.radius + new_particle_radius
+        for particle in particles
+    ):
         return
 
     charge = -20 if ev.button == 1 else 20
-    particles.append(Particle(ev.pos[0]+world_offset[0], ev.pos[1]+world_offset[1], charge, -6))
+    particles.append(Particle(*particle_position, charge, -6))
 
 
 clock = pygame.time.Clock()
@@ -205,7 +388,103 @@ def main_screen(delta: float):
         if start_rect.collidepoint(pos):
             state = "sandbox"
             return
-        
+
+def draw_particle_interactions(surface: pygame.Surface):
+    for index, particle in enumerate(particles):
+        start = (particle.x - world_offset[0], particle.y - world_offset[1])
+        for other in particles[index + 1:]:
+            if particle.chargeMantissa == 0 or other.chargeMantissa == 0:
+                continue
+
+            end = (other.x - world_offset[0], other.y - world_offset[1])
+            dx = end[0] - start[0]
+            dy = end[1] - start[1]
+            separation = math.hypot(dx, dy)
+            if separation == 0:
+                continue
+
+            direction = (dx / separation, dy / separation)
+            attraction = particle.chargeMantissa * other.chargeMantissa < 0
+            color = (70, 195, 220) if attraction else (245, 155, 95)
+
+            line_start_distance = particle.radius + 3
+            line_end_distance = separation - other.radius - 3
+            if line_start_distance >= line_end_distance:
+                continue
+
+            line_start = (
+                start[0] + direction[0] * line_start_distance,
+                start[1] + direction[1] * line_start_distance,
+            )
+            line_end = (
+                start[0] + direction[0] * line_end_distance,
+                start[1] + direction[1] * line_end_distance,
+            )
+            clipped_line = surface.get_rect().clipline(line_start, line_end)
+            if not clipped_line:
+                continue
+            line_start, line_end = clipped_line
+            line_dx = line_end[0] - line_start[0]
+            line_dy = line_end[1] - line_start[1]
+            line_length = math.hypot(line_dx, line_dy)
+            if line_length == 0:
+                continue
+            line_direction = (line_dx / line_length, line_dy / line_length)
+            dash_length = 9
+            gap_length = 7
+            distance_along_line = 0
+            while distance_along_line < line_length:
+                dash_end_distance = min(
+                    distance_along_line + dash_length,
+                    line_length,
+                )
+                dash_start = (
+                    line_start[0] + line_direction[0] * distance_along_line,
+                    line_start[1] + line_direction[1] * distance_along_line,
+                )
+                dash_end = (
+                    line_start[0] + line_direction[0] * dash_end_distance,
+                    line_start[1] + line_direction[1] * dash_end_distance,
+                )
+                pygame.draw.line(surface, (28, 32, 43), dash_start, dash_end, 4)
+                pygame.draw.line(surface, color, dash_start, dash_end, 2)
+                distance_along_line += dash_length + gap_length
+
+            if attraction:
+                arrows = (
+                    (start, direction, particle.radius + 22),
+                    (end, (-direction[0], -direction[1]), other.radius + 22),
+                )
+            else:
+                arrows = (
+                    (start, (-direction[0], -direction[1]), particle.radius + 14),
+                    (end, direction, other.radius + 14),
+                )
+
+            for arrow_center, arrow_direction, arrow_distance in arrows:
+                arrow_tip = (
+                    arrow_center[0] + arrow_direction[0] * arrow_distance,
+                    arrow_center[1] + arrow_direction[1] * arrow_distance,
+                )
+                arrow_length = 8
+                arrow_half_width = 4
+                perpendicular = (-arrow_direction[1], arrow_direction[0])
+                arrow_base = (
+                    arrow_tip[0] - arrow_direction[0] * arrow_length,
+                    arrow_tip[1] - arrow_direction[1] * arrow_length,
+                )
+                pygame.draw.polygon(surface, color, [
+                    arrow_tip,
+                    (
+                        arrow_base[0] + perpendicular[0] * arrow_half_width,
+                        arrow_base[1] + perpendicular[1] * arrow_half_width,
+                    ),
+                    (
+                        arrow_base[0] - perpendicular[0] * arrow_half_width,
+                        arrow_base[1] - perpendicular[1] * arrow_half_width,
+                    ),
+                ])
+
 def sandbox(delta: float):
     global screen
     
@@ -225,6 +504,7 @@ def sandbox(delta: float):
         world_offset[1] += offset_increase
     
     draw_grid(screen, GRID_SIZE, pygame.colordict.THECOLORS["gray"], world_offset)
+    draw_particle_interactions(screen)
     
     info_font = pygame.font.Font(general_font, 14)
     
@@ -240,37 +520,6 @@ def sandbox(delta: float):
         
         field = info_font.render(f"Eletric field: {particles[0].eletric_field(particles[1])}", False, pygame.colordict.THECOLORS["red"])
         screen.blit(field, (5, 48))
-        
-        cateto_oposto = abs(particles[0].y - particles[1].y)
-        hipotenusa = math.sqrt((particles[0].x - particles[1].x)**2 + (particles[0].y - particles[1].y)**2)
-        # cateto_adjacente = abs(particles[0].x - particles[1].x)
-        
-        angle = to_deg(math.asin(cateto_oposto/hipotenusa))
-        
-        offsetX = 0
-        offsetY = 0
-        
-        if particles[0].x < particles[1].x and particles[0].y < particles[1].y: # quadrante inferior esquerdo
-            angle *= -1
-        elif particles[0].x < particles[1].x and particles[0].y > particles[1].y: # quadrante superior esquerdo
-            pass # nesse caso tá de boa
-        elif particles[0].x > particles[1].x and particles[0].y > particles[1].y: # quadrante superior direito
-            angle = 180 - angle
-            offsetX -= 16
-        elif particles[0].x > particles[1].x and particles[0].y > particles[1].y: # quadrante inferior direito
-            angle += 180
-        
-        font_size = 16
-        angle_font = pygame.font.Font(general_font, font_size)
-        text = angle_font.render(f"{angle}", False, pygame.colordict.THECOLORS["green"])
-        rotated_text = pygame.transform.rotate(text, angle)
-        
-        screen.blit(rotated_text, (
-            max(particles[0].x, particles[1].x) - abs(particles[0].x - particles[1].x)/2 - rotated_text.get_width()/2 + offsetX - world_offset[0],
-            max(particles[0].y, particles[1].y) - abs(particles[0].y - particles[1].y)/2 - rotated_text.get_height()/2 + offsetY - world_offset[1])
-        )
-        
-        pygame.draw.line(screen, pygame.colordict.THECOLORS["yellow"], (particles[0].x - world_offset[0], particles[0].y-world_offset[1]), (particles[1].x - world_offset[0], particles[1].y - world_offset[1]), 4)
         
         # formula_font = pygame.font.Font(general_font, 32)
         # draw_ele_force_formula(screen, (
@@ -312,9 +561,6 @@ def sandbox(delta: float):
     if pressed_keys[pygame.K_LSHIFT] or pressed_keys[pygame.K_RSHIFT]:
         shift_is_pressed_text = helper_font.render("SHIFT PRESSIONADO", False, pygame.colordict.THECOLORS["blue"])
         screen.blit(shift_is_pressed_text, (screen_width - shift_is_pressed_text.get_width(), screen_height - world_pos_size*3))
-    
-    if side_menu["shown"]:
-        show_particle_side_menu()
         
 
 running = True
@@ -338,6 +584,8 @@ while running:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_c:
                 particles = []
+                side_menu["shown"] = False
+                side_menu["particle"] = None
             if event.key == pygame.K_r:
                 state = "main_screen"
     screen_width, screen_height = screen.get_size()
@@ -345,6 +593,11 @@ while running:
         main_screen(delta)
     elif state == "sandbox":
         sandbox(delta)
+        if side_menu["show_field"]:
+            draw_electric_field_grid(screen)
+        if side_menu["shown"]:
+            show_particle_side_menu()
         show_actions_side_menu()
+        
         
     pygame.display.flip()
