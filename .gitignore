@@ -4,5 +4,3 @@
 # we wont be putting caches on github...
 */__pycache__/*
 __pycache__/*
-
-fonts/*
