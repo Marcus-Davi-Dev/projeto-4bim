@@ -117,6 +117,9 @@ def show_actions_side_menu():
 def show_particle_side_menu():
     global side_menu
     
+    if not side_menu["shown"]:
+        return
+    
     menu_offset = screen_width/5*4
     background = pygame.Surface((screen_width/5, screen_height), pygame.SRCALPHA)
     background.fill((50, 50, 50, 0))
@@ -189,17 +192,17 @@ def main_screen(delta: float):
     title = title_font.render(title_text, False, pygame.colordict.THECOLORS["aliceblue"])
     screen.blit(title, (screen_width/2 - title_font.size(title_text)[0]/2, title_size))
         
-    pygame.draw.circle(screen, globals['color'], (screen_width/2, screen_height/2), globals["size"])
 
     play_text_size = 32
     play_text_font = pygame.font.Font(general_font, play_text_size)
     play_text = "START"
     play_render = play_text_font.render(play_text, False, pygame.colordict.THECOLORS["white"])
+    start_rect = pygame.draw.rect(screen, globals['color'], (screen_width/2-play_text_font.size(play_text)[0]/2-6, screen_height/2-play_text_size/2, play_text_font.size(play_text)[0]+12, play_text_size+10), 3, 12)
     screen.blit(play_render, (screen_width/2 - play_text_font.size(play_text)[0]/2, screen_height/2 - play_text_size/2))
     
     if mousePressedButtons.count(True) > 0:
         pos = pygame.mouse.get_pos()
-        if distance(pos, (screen_width/2, screen_height/2)) < globals["size"]:
+        if start_rect.collidepoint(pos):
             state = "sandbox"
             return
         
