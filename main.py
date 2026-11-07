@@ -25,7 +25,7 @@ side_menu = {
 action_side_menu_state: str = "wander"
 side_menu_states = ["wander", "create particle", "inspect"]
 side_menu_translations = {
-    "wander": "perambular (vou trocar depois)",
+    "wander": "mover pela grid",
     "create particle": "criar partículas",
     "inspect": "inspecionar"
 }
@@ -763,7 +763,7 @@ while running:
         lessons_screen()
     elif state == "sandbox":
         if side_menu["show_field"]:
-            draw_electric_field_grid(screen, 9)
+            draw_electric_field_grid(screen, 30)
         sandbox(delta)
         if side_menu["shown"]:
             show_particle_side_menu()
